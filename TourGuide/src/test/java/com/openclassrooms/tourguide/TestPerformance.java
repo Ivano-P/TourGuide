@@ -20,7 +20,7 @@ import com.openclassrooms.tourguide.service.RewardsService;
 import com.openclassrooms.tourguide.service.TourGuideService;
 import com.openclassrooms.tourguide.user.User;
 
-public class TestPerformance {
+class TestPerformance {
 
 	/*
 	 * A note on performance improvements:
@@ -47,7 +47,7 @@ public class TestPerformance {
 
 	@Disabled
 	@Test
-	public void highVolumeTrackLocation() {
+	void highVolumeTrackLocation() {
 		GpsUtil gpsUtil = new GpsUtil();
 		RewardsService rewardsService = new RewardsService(gpsUtil, new RewardCentral());
 		// Users should be incremented up to 100,000, and test finishes within 15
@@ -73,7 +73,7 @@ public class TestPerformance {
 
 	@Disabled
 	@Test
-	public void highVolumeGetRewards() {
+	void highVolumeGetRewards() {
 		GpsUtil gpsUtil = new GpsUtil();
 		RewardsService rewardsService = new RewardsService(gpsUtil, new RewardCentral());
 

@@ -1,5 +1,6 @@
 package com.openclassrooms.tourguide.service;
 
+import com.openclassrooms.tourguide.dto.NearbyAttractionDTO;
 import com.openclassrooms.tourguide.helper.InternalTestHelper;
 import com.openclassrooms.tourguide.tracker.Tracker;
 import com.openclassrooms.tourguide.user.User;
@@ -7,14 +8,7 @@ import com.openclassrooms.tourguide.user.UserReward;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Random;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -102,9 +96,68 @@ public class TourGuideService {
 				nearbyAttractions.add(attraction);
 			}
 		}
-
 		return nearbyAttractions;
 	}
+
+	//TODO: write unit test
+	/**
+	 * This method retrieves a SortedMap of attractions and their distance from VisitedLocation
+	 *
+	 * @param visitedLocation the visited location to find nearby attractions for.
+	 * @return a SortedMap of the five closest attractions.
+	 *
+"	 * @author Ivano P
+	 */
+	public SortedMap<Double, Attraction> getAttractionsDistanceFromLocation(VisitedLocation visitedLocation) {
+		//map to hold distance from visitedLocation to attraction
+		TreeMap<Double, Attraction> attractionByDistance= new TreeMap<>();
+
+		//Loop through list of attractions and map them with distances from visited location
+		for(Attraction attraction : gpsUtil.getAttractions()){
+			attractionByDistance.put(rewardsService.getDistance(visitedLocation.location, attraction), attraction);
+		}
+
+		return attractionByDistance;
+	}
+
+	//TODO: write unit test
+	/**
+	 * This method takes a sorted map of attractions sorted by distance, a user, and a visited location.
+	 * It then finds the five closest attractions to the visited location and returns them as a list
+	 * of NearbyAttractionDTO objects.
+	 *
+	 * @param attractionAndDistance A sorted map where the keys are distances to attractions and the values are the attractions themselves.
+	 * @param user The User object for whom we are finding the nearby attractions.
+	 * @param visitedLocation The VisitedLocation object representing the user's current location.
+	 * @return A list of the five closest attractions to the user's location, represented as NearbyAttractionDTO objects.
+	 *
+	 * @author Ivano P
+	 */
+	public List<NearbyAttractionDTO> getFiveClosestAttractions(SortedMap<Double, Attraction> attractionAndDistance, User user,
+															   VisitedLocation visitedLocation){
+		List<NearbyAttractionDTO> fiveClosestAttractions = new ArrayList<>();
+
+		int counter = 0;
+		for (var entry : attractionAndDistance.entrySet()) {
+			// Stop after collecting data for the closest five attractions
+			if (counter >= 5) {
+				break;
+			}
+			Attraction attraction = entry.getValue();
+			Double distanceFromVisitedLocation = entry.getKey();
+			int rewardPoints = rewardsService.getRewardPoints(attraction, user);
+			String attractionLatLong = "Attraction's latitude: " + String.valueOf(attraction.latitude) + ", longitude: " +
+					String.valueOf(attraction.longitude);
+			String userLatLong = "User's latitude: " + String.valueOf(visitedLocation.location.latitude) +
+					", longitude: " + String.valueOf(visitedLocation.location.longitude);
+
+			fiveClosestAttractions.add(new NearbyAttractionDTO(attraction.attractionName, attractionLatLong,
+					userLatLong, distanceFromVisitedLocation, rewardPoints));
+			counter ++;
+		}
+		return fiveClosestAttractions;
+	}
+
 
 	private void addShutDownHook() {
 		Runtime.getRuntime().addShutdownHook(new Thread() {

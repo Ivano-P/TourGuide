@@ -58,8 +58,9 @@ public class RewardsService {
 	private boolean nearAttraction(VisitedLocation visitedLocation, Attraction attraction) {
 		return getDistance(attraction, visitedLocation.location) > proximityBuffer ? false : true;
 	}
-	
-	private int getRewardPoints(Attraction attraction, User user) {
+
+	//changed this from private to default to be able to call it from TourGuideService.class
+	int getRewardPoints(Attraction attraction, User user) {
 		return rewardsCentral.getAttractionRewardPoints(attraction.attractionId, user.getUserId());
 	}
 	
