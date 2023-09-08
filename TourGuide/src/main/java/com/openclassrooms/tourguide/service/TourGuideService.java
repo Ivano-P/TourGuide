@@ -89,17 +89,6 @@ public class TourGuideService {
 		return visitedLocation;
 	}
 
-	public List<Attraction> getNearByAttractions(VisitedLocation visitedLocation) {
-		List<Attraction> nearbyAttractions = new ArrayList<>();
-		for (Attraction attraction : gpsUtil.getAttractions()) {
-			if (rewardsService.isWithinAttractionProximity(attraction, visitedLocation.location)) {
-				nearbyAttractions.add(attraction);
-			}
-		}
-		return nearbyAttractions;
-	}
-
-	//TODO: write unit test
 	/**
 	 * This method retrieves a SortedMap of attractions and their distance from VisitedLocation
 	 *
@@ -120,7 +109,6 @@ public class TourGuideService {
 		return attractionByDistance;
 	}
 
-	//TODO: write unit test
 	/**
 	 * This method takes a sorted map of attractions sorted by distance, a user, and a visited location.
 	 * It then finds the five closest attractions to the visited location and returns them as a list
@@ -133,7 +121,7 @@ public class TourGuideService {
 	 *
 	 * @author Ivano P
 	 */
-	public List<NearbyAttractionDTO> getFiveClosestAttractions(SortedMap<Double, Attraction> attractionAndDistance, User user,
+	public List<NearbyAttractionDTO> getNearByAttractions(SortedMap<Double, Attraction> attractionAndDistance, User user,
 															   VisitedLocation visitedLocation){
 		List<NearbyAttractionDTO> fiveClosestAttractions = new ArrayList<>();
 

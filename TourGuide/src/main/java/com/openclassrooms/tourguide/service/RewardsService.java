@@ -1,5 +1,6 @@
 package com.openclassrooms.tourguide.service;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -35,14 +36,21 @@ public class RewardsService {
 	public void setDefaultProximityBuffer() {
 		proximityBuffer = defaultProximityBuffer;
 	}
-	
+
+	//used defensive copies of userLocations and attractions to get values of those lists in one instant
 	public void calculateRewards(User user) {
 		List<VisitedLocation> userLocations = user.getVisitedLocations();
 		List<Attraction> attractions = gpsUtil.getAttractions();
-		
-		for(VisitedLocation visitedLocation : userLocations) {
-			for(Attraction attraction : attractions) {
-				if(user.getUserRewards().stream().filter(r -> r.attraction.attractionName.equals(attraction.attractionName)).count() == 0) {
+
+		//defensive copy
+		List<VisitedLocation> userLocationsCopy = new ArrayList<>(userLocations);
+		//defensive copy
+		List<Attraction> attractionsCopy = new ArrayList<>(attractions);
+
+		for(VisitedLocation visitedLocation : userLocationsCopy) {
+			for(Attraction attraction : attractionsCopy) {
+				if(user.getUserRewards().stream().filter(r -> r.attraction.attractionName
+						.equals(attraction.attractionName)).count() == 0) {
 					if(nearAttraction(visitedLocation, attraction)) {
 						user.addUserReward(new UserReward(visitedLocation, attraction, getRewardPoints(attraction, user)));
 					}

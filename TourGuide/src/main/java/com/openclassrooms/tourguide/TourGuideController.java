@@ -48,7 +48,7 @@ public class TourGuideController {
         //get user location to search for 5 closest tourist attractions
     	VisitedLocation visitedLocation = tourGuideService.getUserLocation(getUser(userName));
 
-        return tourGuideService.getFiveClosestAttractions(
+        return tourGuideService.getNearByAttractions(
                 tourGuideService.getAttractionsDistanceFromLocation(visitedLocation),
                 getUser(userName),
                 visitedLocation);

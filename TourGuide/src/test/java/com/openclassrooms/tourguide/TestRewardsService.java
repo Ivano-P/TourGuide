@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import gpsUtil.GpsUtil;
@@ -47,8 +48,7 @@ class TestRewardsService {
 		assertTrue(rewardsService.isWithinAttractionProximity(attraction, attraction));
 	}
 
-	@Disabled // Needs fixed - can throw ConcurrentModificationException
-	@Test
+	@Test // TODO check if better solution than using defensive copies of the lists that are being iterated through (old Needs fixed - can throw ConcurrentModificationException)
 	void nearAllAttractions() {
 		GpsUtil gpsUtil = new GpsUtil();
 		RewardsService rewardsService = new RewardsService(gpsUtil, new RewardCentral());

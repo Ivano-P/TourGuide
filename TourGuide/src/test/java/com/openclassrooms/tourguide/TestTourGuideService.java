@@ -3,10 +3,9 @@ package com.openclassrooms.tourguide;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
-import org.junit.jupiter.api.Disabled;
+import com.openclassrooms.tourguide.dto.NearbyAttractionDTO;
 import org.junit.jupiter.api.Test;
 
 import gpsUtil.GpsUtil;
@@ -92,22 +91,27 @@ class TestTourGuideService {
 		assertEquals(user.getUserId(), visitedLocation.userId);
 	}
 
-
 	@Test
-	void getNearbyAttractions() {
+	void testGetNearByAttractions() {
+		//Arrange
 		GpsUtil gpsUtil = new GpsUtil();
 		RewardsService rewardsService = new RewardsService(gpsUtil, new RewardCentral());
 		InternalTestHelper.setInternalUserNumber(0);
 		TourGuideService tourGuideService = new TourGuideService(gpsUtil, rewardsService);
 
 		User user = new User(UUID.randomUUID(), "jon", "000", "jon@tourGuide.com");
-		VisitedLocation visitedLocation = tourGuideService.trackUserLocation(user);
+		VisitedLocation visitedLocation = gpsUtil.getUserLocation(user.getUserId());
 
-		List<Attraction> attractions = tourGuideService.getNearByAttractions(visitedLocation);
+		SortedMap<Double, Attraction> attractionByDistance = tourGuideService
+				.getAttractionsDistanceFromLocation(visitedLocation);
 
+		//Act
+		List<NearbyAttractionDTO> results = tourGuideService
+				.getNearByAttractions(attractionByDistance ,user, visitedLocation);
 		tourGuideService.tracker.stopTracking();
 
-		assertEquals(5, attractions.size());
+		//Assert
+		assertEquals(5, results.size());
 	}
 
 	public void getTripDeals() {
