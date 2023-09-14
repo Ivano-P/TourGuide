@@ -37,14 +37,13 @@ public class RewardsService {
 		proximityBuffer = defaultProximityBuffer;
 	}
 
-	//used defensive copies of userLocations and attractions to get values of those lists in one instant
+
 	public void calculateRewards(User user) {
 		List<VisitedLocation> userLocations = user.getVisitedLocations();
 		List<Attraction> attractions = gpsUtil.getAttractions();
 
-		//defensive copy
+		//defensive copies to make sure the versions of the list we are iterating through are no longer being updated
 		List<VisitedLocation> userLocationsCopy = new ArrayList<>(userLocations);
-		//defensive copy
 		List<Attraction> attractionsCopy = new ArrayList<>(attractions);
 
 		for(VisitedLocation visitedLocation : userLocationsCopy) {

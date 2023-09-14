@@ -3,7 +3,6 @@ package com.openclassrooms.tourguide;
 import java.util.List;
 
 import com.openclassrooms.tourguide.dto.NearbyAttractionDTO;
-import gpsUtil.location.Attraction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -32,6 +31,15 @@ public class TourGuideController {
     public VisitedLocation getLocation(@RequestParam String userName) {
     	return tourGuideService.getUserLocation(getUser(userName));
     }
+
+    /*
+    //testing without visited location directly return for each user but managing batch of user
+    @RequestMapping("/getLocation")
+    public void getLocation2(@RequestParam String userName) {
+    	tourGuideService.addUserToBatchForGetLocation(getUser(userName));
+    }
+
+     */
 
     /**
      * This endpoint receives a username as a request parameter and returns a list of the

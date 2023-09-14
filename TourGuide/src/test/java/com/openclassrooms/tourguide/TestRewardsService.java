@@ -48,7 +48,8 @@ class TestRewardsService {
 		assertTrue(rewardsService.isWithinAttractionProximity(attraction, attraction));
 	}
 
-	@Test // TODO check if better solution than using defensive copies of the lists that are being iterated through (old Needs fixed - can throw ConcurrentModificationException)
+	//fixed, no more throw ConcurrentModificationException
+	@Test
 	void nearAllAttractions() {
 		GpsUtil gpsUtil = new GpsUtil();
 		RewardsService rewardsService = new RewardsService(gpsUtil, new RewardCentral());

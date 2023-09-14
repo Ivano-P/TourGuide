@@ -9,6 +9,7 @@ import com.openclassrooms.tourguide.user.UserReward;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.*;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -33,6 +34,13 @@ public class TourGuideService {
 	public final Tracker tracker;
 	boolean testMode = true;
 
+	//to group users and concurrently deal with them
+	public final List<User> userBatch = Collections.synchronizedList(new ArrayList<>());
+
+	//creating cash thread pool to call trackUserLocation method concurrently on multiple batches of users
+	private final ExecutorService batchExecutor = Executors.newFixedThreadPool(10);
+
+
 	public TourGuideService(GpsUtil gpsUtil, RewardsService rewardsService) {
 		this.gpsUtil = gpsUtil;
 		this.rewardsService = rewardsService;
@@ -54,8 +62,71 @@ public class TourGuideService {
 	}
 
 	public VisitedLocation getUserLocation(User user) {
+		userBatch.add(user);
 		VisitedLocation visitedLocation = (user.getVisitedLocations().size() > 0) ? user.getLastVisitedLocation()
-				: trackUserLocation(user);
+				: getUserLocationFromBatch(user);
+		return visitedLocation;
+	}
+
+	//processes all the users currently in the batch:
+	public Map<User, VisitedLocation>  processUserLocationsInBatch() {
+		List<User> currentBatch;
+		int USERS_PER_BATCH = 200;
+
+		synchronized (userBatch) {
+			currentBatch = new ArrayList<>(userBatch);
+			userBatch.clear();
+		}
+
+		// Calculate the number of batches.
+		int batches = (int) Math.ceil((double) currentBatch.size() / USERS_PER_BATCH);
+
+		// List to hold all the CompletableFuture objects
+		List<CompletableFuture<Map<User, VisitedLocation>>> futuresList = new ArrayList<>();
+
+		for (int i = 0; i < batches; i++) {
+			int start = i * USERS_PER_BATCH;
+			int end = Math.min(start + USERS_PER_BATCH, currentBatch.size());
+
+			List<User> batch = currentBatch.subList(start, end);
+
+			// Creating CompletableFuture for the batch and adding it to the list.
+			CompletableFuture<Map<User, VisitedLocation>> futureBatch = CompletableFuture.supplyAsync(() -> processBatch(batch), batchExecutor);
+			futuresList.add(futureBatch);
+		}
+
+		// This will contain the final combined results.
+		Map<User, VisitedLocation> resultMap = new HashMap<>();
+
+		// Combine all results from each CompletableFuture
+		for(CompletableFuture<Map<User, VisitedLocation>> future : futuresList) {
+			try {
+				resultMap.putAll(future.get());
+			} catch (InterruptedException | ExecutionException e) {
+				e.printStackTrace();
+			}
+		}
+
+		return resultMap;
+
+	}
+
+	// This method processes a batch of users and returns a Map of User to VisitedLocation
+	private Map<User, VisitedLocation> processBatch(List<User> batch) {
+		Map<User, VisitedLocation> batchResult = new HashMap<>();
+
+		for (User user : batch) {
+			VisitedLocation visitedLocation = trackUserLocation(user);
+			batchResult.put(user, visitedLocation);
+		}
+
+		return batchResult;
+	}
+
+	//get user visited location from map
+	public VisitedLocation getUserLocationFromBatch(User user){
+		Map<User, VisitedLocation> batchResult = processUserLocationsInBatch();
+		VisitedLocation visitedLocation = batchResult.get(user);
 		return visitedLocation;
 	}
 

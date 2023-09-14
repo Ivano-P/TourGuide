@@ -45,7 +45,7 @@ class TestPerformance {
 	 * TimeUnit.MILLISECONDS.toSeconds(stopWatch.getTime()));
 	 */
 
-	@Disabled
+
 	@Test
 	void highVolumeTrackLocation() {
 		GpsUtil gpsUtil = new GpsUtil();
@@ -60,15 +60,18 @@ class TestPerformance {
 
 		StopWatch stopWatch = new StopWatch();
 		stopWatch.start();
+		tourGuideService.userBatch.addAll(allUsers);
 		for (User user : allUsers) {
-			tourGuideService.trackUserLocation(user);
+			tourGuideService.getUserLocationFromBatch(user);
+			//tourGuideService.trackUserLocation(user);
 		}
 		stopWatch.stop();
 		tourGuideService.tracker.stopTracking();
 
 		System.out.println("highVolumeTrackLocation: Time Elapsed: "
 				+ TimeUnit.MILLISECONDS.toSeconds(stopWatch.getTime()) + " seconds.");
-		assertTrue(TimeUnit.MINUTES.toSeconds(15) >= TimeUnit.MILLISECONDS.toSeconds(stopWatch.getTime()));
+		assertTrue(TimeUnit.MINUTES.toSeconds(15) >= TimeUnit.MILLISECONDS.toSeconds(stopWatch.
+				getTime()));
 	}
 
 	@Disabled
