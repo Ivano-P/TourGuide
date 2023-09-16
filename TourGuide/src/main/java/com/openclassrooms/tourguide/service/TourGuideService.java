@@ -13,6 +13,7 @@ import java.util.concurrent.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import lombok.extern.log4j.Log4j2;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -34,11 +35,13 @@ public class TourGuideService {
 	public final Tracker tracker;
 	boolean testMode = true;
 
-	//to group users and concurrently deal with them
+	/**
+	 * List used to creat batch of users that can then be processed concurrently to optimize performance
+	 */
 	public final List<User> userBatch = Collections.synchronizedList(new ArrayList<>());
 
 	//creating cash thread pool to call trackUserLocation method concurrently on multiple batches of users
-	private final ExecutorService batchExecutor = Executors.newFixedThreadPool(10);
+	private final ExecutorService executorService = Executors.newFixedThreadPool(10);
 
 
 	public TourGuideService(GpsUtil gpsUtil, RewardsService rewardsService) {
@@ -61,17 +64,29 @@ public class TourGuideService {
 		return user.getUserRewards();
 	}
 
+
 	public VisitedLocation getUserLocation(User user) {
-		userBatch.add(user);
-		VisitedLocation visitedLocation = (user.getVisitedLocations().size() > 0) ? user.getLastVisitedLocation()
-				: getUserLocationFromBatch(user);
+		VisitedLocation visitedLocation;
+		if(user.getVisitedLocations().size() > 0){
+			visitedLocation = user.getLastVisitedLocation();
+		}else {
+			userBatch.add(user);
+			visitedLocation = getUserVisitedLocationFromBatch(user);
+		}
 		return visitedLocation;
 	}
 
-	//processes all the users currently in the batch:
+	/**
+	 * creates a defencive copy of the batch of users to work on, then clears the userBatch
+	 * the new batch is then split in a defined maximum of users (USERS_PER_BATCH).
+	 * processBatch method is called asynchronously on these batches
+	 * the map return by each batched processed is then combined into one MAP and then returned
+	 *
+	 * @return a map of users and their visited location
+	 */
 	public Map<User, VisitedLocation>  processUserLocationsInBatch() {
 		List<User> currentBatch;
-		int USERS_PER_BATCH = 200;
+		final int USERS_PER_BATCH = 200;
 
 		synchronized (userBatch) {
 			currentBatch = new ArrayList<>(userBatch);
@@ -91,25 +106,27 @@ public class TourGuideService {
 			List<User> batch = currentBatch.subList(start, end);
 
 			// Creating CompletableFuture for the batch and adding it to the list.
-			CompletableFuture<Map<User, VisitedLocation>> futureBatch = CompletableFuture.supplyAsync(() -> processBatch(batch), batchExecutor);
+			CompletableFuture<Map<User, VisitedLocation>> futureBatch = CompletableFuture
+					.supplyAsync(() -> processBatch(batch), executorService);
 			futuresList.add(futureBatch);
 		}
 
 		// This will contain the final combined results.
-		Map<User, VisitedLocation> resultMap = new HashMap<>();
+		Map<User, VisitedLocation> resultMapUsersAndVisitedLocation = new HashMap<>();
 
 		// Combine all results from each CompletableFuture
 		for(CompletableFuture<Map<User, VisitedLocation>> future : futuresList) {
 			try {
-				resultMap.putAll(future.get());
+				resultMapUsersAndVisitedLocation.putAll(future.get());
 			} catch (InterruptedException | ExecutionException e) {
 				e.printStackTrace();
 			}
 		}
 
-		return resultMap;
+		return resultMapUsersAndVisitedLocation;
 
 	}
+
 
 	// This method processes a batch of users and returns a Map of User to VisitedLocation
 	private Map<User, VisitedLocation> processBatch(List<User> batch) {
@@ -123,11 +140,14 @@ public class TourGuideService {
 		return batchResult;
 	}
 
-	//get user visited location from map
-	public VisitedLocation getUserLocationFromBatch(User user){
+	/**
+	 * get user visited locations from map
+	 * @param user
+	 * @return the visited locations of a given user
+	 */
+	public VisitedLocation getUserVisitedLocationFromBatch(User user){
 		Map<User, VisitedLocation> batchResult = processUserLocationsInBatch();
-		VisitedLocation visitedLocation = batchResult.get(user);
-		return visitedLocation;
+		return batchResult.get(user);
 	}
 
 	public User getUser(String userName) {
@@ -156,7 +176,7 @@ public class TourGuideService {
 	public VisitedLocation trackUserLocation(User user) {
 		VisitedLocation visitedLocation = gpsUtil.getUserLocation(user.getUserId());
 		user.addToVisitedLocations(visitedLocation);
-		rewardsService.calculateRewards(user);
+		rewardsService.addUserToBatchToCalculateRewardConcurrently(user);
 		return visitedLocation;
 	}
 

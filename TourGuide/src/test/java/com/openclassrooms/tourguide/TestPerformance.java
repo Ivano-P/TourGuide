@@ -62,7 +62,7 @@ class TestPerformance {
 		stopWatch.start();
 		tourGuideService.userBatch.addAll(allUsers);
 		for (User user : allUsers) {
-			tourGuideService.getUserLocationFromBatch(user);
+			tourGuideService.getUserVisitedLocationFromBatch(user);
 			//tourGuideService.trackUserLocation(user);
 		}
 		stopWatch.stop();
@@ -74,7 +74,6 @@ class TestPerformance {
 				getTime()));
 	}
 
-	@Disabled
 	@Test
 	void highVolumeGetRewards() {
 		GpsUtil gpsUtil = new GpsUtil();
@@ -91,12 +90,16 @@ class TestPerformance {
 		List<User> allUsers = new ArrayList<>();
 		allUsers = tourGuideService.getAllUsers();
 		allUsers.forEach(u -> u.addToVisitedLocations(new VisitedLocation(u.getUserId(), attraction, new Date())));
+		rewardsService.userBatch.addAll(allUsers);
+		allUsers.forEach(u -> rewardsService.calculateUserRewardsConcurrently());
 
-		allUsers.forEach(u -> rewardsService.calculateRewards(u));
+		// Wait for all tasks in the service to complete
+		rewardsService.waitForAllTasksToComplete();
 
 		for (User user : allUsers) {
 			assertTrue(user.getUserRewards().size() > 0);
 		}
+
 		stopWatch.stop();
 		tourGuideService.tracker.stopTracking();
 

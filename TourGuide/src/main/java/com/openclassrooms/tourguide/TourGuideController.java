@@ -32,14 +32,6 @@ public class TourGuideController {
     	return tourGuideService.getUserLocation(getUser(userName));
     }
 
-    /*
-    //testing without visited location directly return for each user but managing batch of user
-    @RequestMapping("/getLocation")
-    public void getLocation2(@RequestParam String userName) {
-    	tourGuideService.addUserToBatchForGetLocation(getUser(userName));
-    }
-
-     */
 
     /**
      * This endpoint receives a username as a request parameter and returns a list of the
