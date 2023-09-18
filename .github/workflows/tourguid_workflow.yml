@@ -27,17 +27,12 @@ jobs:
         java-version: '17'
         distribution: 'adopt'
         cache: maven
-
-    - name: Print working directory
-      run: pwd
-
-    - name: Compile
-      run: mvn -B compile --file TourGuide/pom.xml
-
-    - name: Test
-      run: mvn -B test --file TourGuide/pom.xml
         
     - name: Build artifacts with Maven
       run: mvn -B package --file TourGuide/pom.xml
 
-  
+    - name: Upload JAR file
+      uses: actions/upload-artifact@v2
+      with:
+        name: tourguide
+        path: TourGuide/target/*.jar
