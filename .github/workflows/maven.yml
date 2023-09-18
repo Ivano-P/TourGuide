@@ -11,8 +11,6 @@ name: Java CI with Maven
 on:
   push:
     branches: [ "master" ]
-  pull_request:
-    branches: [ "master" ]
 
 jobs:
   build:
@@ -29,10 +27,10 @@ jobs:
         cache: maven
 
     - name: Compile
-      run: mvn -B compile --file pom.xml
+      run: mvn -B compile --file TourGuide/pom.xml
 
     - name: Test
-      run: mvn -B test --file pom.xml
+      run: mvn -B test --file TourGuide/pom.xml
         
     - name: Build artifacts with Maven
       run: mvn -B package --file pom.xml
