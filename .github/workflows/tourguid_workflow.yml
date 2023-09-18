@@ -32,7 +32,7 @@ jobs:
       run: mvn -B package --file TourGuide/pom.xml
 
     - name: Upload JAR file
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: tourguide
         path: TourGuide/target/*.jar
