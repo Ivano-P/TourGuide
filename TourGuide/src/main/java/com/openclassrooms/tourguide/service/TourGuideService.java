@@ -6,16 +6,20 @@ import com.openclassrooms.tourguide.tracker.Tracker;
 import com.openclassrooms.tourguide.user.User;
 import com.openclassrooms.tourguide.user.UserReward;
 
+import java.sql.SQLOutput;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import lombok.extern.log4j.Log4j2;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.converter.json.GsonBuilderUtils;
 import org.springframework.stereotype.Service;
 
 import gpsUtil.GpsUtil;
@@ -35,19 +39,12 @@ public class TourGuideService {
 	public final Tracker tracker;
 	boolean testMode = true;
 
-	/**
-	 * List used to creat batch of users that can then be processed concurrently to optimize performance
-	 */
-	public final List<User> userBatch = Collections.synchronizedList(new ArrayList<>());
-
-	//creating cash thread pool to call trackUserLocation method concurrently on multiple batches of users
-	private final ExecutorService executorService = Executors.newFixedThreadPool(10);
-
+	ExecutorService executorService = Executors.newFixedThreadPool(10);
 
 	public TourGuideService(GpsUtil gpsUtil, RewardsService rewardsService) {
 		this.gpsUtil = gpsUtil;
 		this.rewardsService = rewardsService;
-		
+
 		Locale.setDefault(Locale.US);
 
 		if (testMode) {
@@ -64,90 +61,9 @@ public class TourGuideService {
 		return user.getUserRewards();
 	}
 
-
-	public VisitedLocation getUserLocation(User user) {
-		VisitedLocation visitedLocation;
-		if(user.getVisitedLocations().size() > 0){
-			visitedLocation = user.getLastVisitedLocation();
-		}else {
-			userBatch.add(user);
-			visitedLocation = getUserVisitedLocationFromBatch(user);
-		}
-		return visitedLocation;
-	}
-
-	/**
-	 * creates a defencive copy of the batch of users to work on, then clears the userBatch
-	 * the new batch is then split in a defined maximum of users (USERS_PER_BATCH).
-	 * processBatch method is called asynchronously on these batches
-	 * the map return by each batched processed is then combined into one MAP and then returned
-	 *
-	 * @return a map of users and their visited location
-	 */
-	public Map<User, VisitedLocation>  processUserLocationsInBatch() {
-		List<User> currentBatch;
-		final int USERS_PER_BATCH = 200;
-
-		synchronized (userBatch) {
-			currentBatch = new ArrayList<>(userBatch);
-			userBatch.clear();
-		}
-
-		// Calculate the number of batches.
-		int batches = (int) Math.ceil((double) currentBatch.size() / USERS_PER_BATCH);
-
-		// List to hold all the CompletableFuture objects
-		List<CompletableFuture<Map<User, VisitedLocation>>> futuresList = new ArrayList<>();
-
-		for (int i = 0; i < batches; i++) {
-			int start = i * USERS_PER_BATCH;
-			int end = Math.min(start + USERS_PER_BATCH, currentBatch.size());
-
-			List<User> batch = currentBatch.subList(start, end);
-
-			// Creating CompletableFuture for the batch and adding it to the list.
-			CompletableFuture<Map<User, VisitedLocation>> futureBatch = CompletableFuture
-					.supplyAsync(() -> processBatch(batch), executorService);
-			futuresList.add(futureBatch);
-		}
-
-		// This will contain the final combined results.
-		Map<User, VisitedLocation> resultMapUsersAndVisitedLocation = new HashMap<>();
-
-		// Combine all results from each CompletableFuture
-		for(CompletableFuture<Map<User, VisitedLocation>> future : futuresList) {
-			try {
-				resultMapUsersAndVisitedLocation.putAll(future.get());
-			} catch (InterruptedException | ExecutionException e) {
-				e.printStackTrace();
-			}
-		}
-
-		return resultMapUsersAndVisitedLocation;
-
-	}
-
-
-	// This method processes a batch of users and returns a Map of User to VisitedLocation
-	private Map<User, VisitedLocation> processBatch(List<User> batch) {
-		Map<User, VisitedLocation> batchResult = new HashMap<>();
-
-		for (User user : batch) {
-			VisitedLocation visitedLocation = trackUserLocation(user);
-			batchResult.put(user, visitedLocation);
-		}
-
-		return batchResult;
-	}
-
-	/**
-	 * get user visited locations from map
-	 * @param user
-	 * @return the visited locations of a given user
-	 */
-	public VisitedLocation getUserVisitedLocationFromBatch(User user){
-		Map<User, VisitedLocation> batchResult = processUserLocationsInBatch();
-		return batchResult.get(user);
+	public CompletableFuture<VisitedLocation> getUserLocation(User user) {
+		return CompletableFuture.supplyAsync(() -> (!user.getVisitedLocations().isEmpty()) ? user.getLastVisitedLocation()
+				: trackUserLocation(user).join(), executorService);
 	}
 
 	public User getUser(String userName) {
@@ -173,12 +89,35 @@ public class TourGuideService {
 		return providers;
 	}
 
-	public VisitedLocation trackUserLocation(User user) {
-		VisitedLocation visitedLocation = gpsUtil.getUserLocation(user.getUserId());
-		user.addToVisitedLocations(visitedLocation);
-		rewardsService.addUserToBatchToCalculateRewardConcurrently(user);
-		return visitedLocation;
+	//for test track all users location and wait for all processed to complete
+	public void trackUserLocationForAllUsers(List<User> users){
+		// Use Stream() to process the users
+		List<CompletableFuture<VisitedLocation>> futures = users.stream()
+				.map(u -> getUserLocation(u)) // getUserLocation already returns CompletableFuture
+				.collect(Collectors.toList());
+
+		// Wait for all CompletableFuture tasks to complete
+		CompletableFuture<Void> allOf = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+		allOf.join();
 	}
+
+
+
+	public  CompletableFuture<VisitedLocation> trackUserLocation(User user) {
+		return CompletableFuture.supplyAsync(() -> {
+			VisitedLocation visitedLocation = gpsUtil.getUserLocation(user.getUserId());
+			user.addToVisitedLocations(visitedLocation);
+			try {
+				rewardsService.calculateRewardsFuture(user).get(); //then
+			} catch (InterruptedException e) {
+				throw new RuntimeException(e);
+			} catch (ExecutionException e) {
+				throw new RuntimeException(e);
+			}
+			return visitedLocation;
+		},executorService);
+	}
+
 
 	/**
 	 * This method retrieves a SortedMap of attractions and their distance from VisitedLocation
@@ -186,7 +125,7 @@ public class TourGuideService {
 	 * @param visitedLocation the visited location to find nearby attractions for.
 	 * @return a SortedMap of the five closest attractions.
 	 *
-"	 * @author Ivano P
+	"	 * @author Ivano P
 	 */
 	public SortedMap<Double, Attraction> getAttractionsDistanceFromLocation(VisitedLocation visitedLocation) {
 		//map to hold distance from visitedLocation to attraction
@@ -213,7 +152,7 @@ public class TourGuideService {
 	 * @author Ivano P
 	 */
 	public List<NearbyAttractionDTO> getNearByAttractions(SortedMap<Double, Attraction> attractionAndDistance, User user,
-															   VisitedLocation visitedLocation){
+														  VisitedLocation visitedLocation){
 		List<NearbyAttractionDTO> fiveClosestAttractions = new ArrayList<>();
 
 		int counter = 0;
@@ -237,7 +176,6 @@ public class TourGuideService {
 		return fiveClosestAttractions;
 	}
 
-
 	private void addShutDownHook() {
 		Runtime.getRuntime().addShutdownHook(new Thread() {
 			public void run() {
@@ -247,9 +185,9 @@ public class TourGuideService {
 	}
 
 	/**********************************************************************************
-	 * 
+	 *
 	 * Methods Below: For Internal Testing
-	 * 
+	 *
 	 **********************************************************************************/
 	private static final String tripPricerApiKey = "test-server-api-key";
 	// Database connection will be used for external users, but for testing purposes

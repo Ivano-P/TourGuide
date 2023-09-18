@@ -60,11 +60,8 @@ class TestPerformance {
 
 		StopWatch stopWatch = new StopWatch();
 		stopWatch.start();
-		tourGuideService.userBatch.addAll(allUsers);
-		for (User user : allUsers) {
-			tourGuideService.getUserVisitedLocationFromBatch(user);
-			//tourGuideService.trackUserLocation(user);
-		}
+		tourGuideService.trackUserLocationForAllUsers(allUsers);
+
 		stopWatch.stop();
 		tourGuideService.tracker.stopTracking();
 
@@ -90,16 +87,12 @@ class TestPerformance {
 		List<User> allUsers = new ArrayList<>();
 		allUsers = tourGuideService.getAllUsers();
 		allUsers.forEach(u -> u.addToVisitedLocations(new VisitedLocation(u.getUserId(), attraction, new Date())));
-		rewardsService.userBatch.addAll(allUsers);
-		allUsers.forEach(u -> rewardsService.calculateUserRewardsConcurrently());
 
-		// Wait for all tasks in the service to complete
-		rewardsService.waitForAllTasksToComplete();
+		rewardsService.calculateRewardsForAllUsers(allUsers);
 
 		for (User user : allUsers) {
 			assertTrue(user.getUserRewards().size() > 0);
 		}
-
 		stopWatch.stop();
 		tourGuideService.tracker.stopTracking();
 

@@ -4,6 +4,7 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Service;
@@ -28,25 +29,7 @@ public class RewardsService {
 	private final RewardCentral rewardsCentral;
 
 	//creating cash thread pool to call calculateReward concurrently
-	private final ExecutorService executorService = Executors.newFixedThreadPool(55);
-
-	/**
-	 * List used to creat batch of users that can then be processed concurrently to optimize performance
-	 */
-	public final List<User> userBatch = Collections.synchronizedList(new ArrayList<>());
-
-
-	//this list is used to check if the CompletableFeatures added to it are all completed.
-	private final List<CompletableFuture<Void>> tasks = Collections.synchronizedList(new ArrayList<>());
-
-	/**
-	 * this method is used for performance test in order to wait for Completable features to finished before checking
-	 * assertions
-	*/
-	public void waitForAllTasksToComplete() {
-		CompletableFuture<Void> allOf = CompletableFuture.allOf(tasks.toArray(new CompletableFuture[0]));
-		allOf.join();
-	}
+	private final ExecutorService executorService = Executors.newFixedThreadPool(50);
 
 
 	public RewardsService(GpsUtil gpsUtil, RewardCentral rewardCentral) {
@@ -62,72 +45,39 @@ public class RewardsService {
 		proximityBuffer = defaultProximityBuffer;
 	}
 
-	/**
-	 * Adds user to batch before processing the batch concurrently
-	 * @param user
-	 */
-	public synchronized void addUserToBatchToCalculateRewardConcurrently(User user){
-		userBatch.add(user);
-		calculateUserRewardsConcurrently();
+	//for test, calculate rewards for all users and wait to all users to be processed
+	public void calculateRewardsForAllUsers(List<User> users){
+		//user stream() to process user
+		List<CompletableFuture<Void>> futures = users.stream().map((u) -> calculateRewardsFuture(u))
+				.collect(Collectors.toList());
+
+		//wait for all CompletableFutures to complete
+		CompletableFuture<Void> allOf = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+		allOf.join();
 	}
 
-	/**
-	 * creates a defencive copy of the batch of users to work on, then clears the userBatch
-	 * the new batch is then split in a defined maximum of users (USERS_PER_BATCH).
-	 * processBatch method is called asynchronously on these batches
-	 */
-	public void calculateUserRewardsConcurrently(){
-		List<User> currentBatch;
-		final int USERS_PER_BATCH = 200;
+	public CompletableFuture<Void> calculateRewardsFuture(User user){
+		return CompletableFuture.runAsync(() ->{
+			List<VisitedLocation> userLocations = user.getVisitedLocations();
+			List<Attraction> attractions = gpsUtil.getAttractions();
 
-		synchronized (userBatch) {
-			currentBatch = new ArrayList<>(userBatch);
-			userBatch.clear();
-		}
+			//defensive copies to make sure the versions of the list we are iterating through are no longer being updated
+			List<VisitedLocation> userLocationsCopy = new ArrayList<>(userLocations);
+			List<Attraction> attractionsCopy = new ArrayList<>(attractions);
 
-		// Calculate the number of batches.
-		int batches = (int) Math.ceil((double) currentBatch.size() / USERS_PER_BATCH);
-
-		for (int i = 0; i < batches; i++) {
-			int start = i * USERS_PER_BATCH;
-			int end = Math.min(start + USERS_PER_BATCH, currentBatch.size());
-
-			List<User> batch = currentBatch.subList(start, end);
-
-			// Creating CompletableFuture for the batch and adding it to the list.
-			CompletableFuture<Void> future = CompletableFuture.runAsync(() -> processBatch(batch), executorService);
-			tasks.add(future);
-		}
-	}
-
-	// This method processes a batch of users by calling calculate reward for each user in batch
-	private void processBatch(List<User> batch) {
-		for (User user : batch) {
-			calculateRewards(user);
-		}
-	}
-
-
-	public void calculateRewards(User user) {
-		List<VisitedLocation> userLocations = user.getVisitedLocations();
-		List<Attraction> attractions = gpsUtil.getAttractions();
-
-		//defensive copies to make sure the versions of the list we are iterating through are no longer being updated
-		List<VisitedLocation> userLocationsCopy = new ArrayList<>(userLocations);
-		List<Attraction> attractionsCopy = new ArrayList<>(attractions);
-
-		for(VisitedLocation visitedLocation : userLocationsCopy) {
-			for(Attraction attraction : attractionsCopy) {
-				if(user.getUserRewards().stream().filter(r -> r.attraction.attractionName
-						.equals(attraction.attractionName)).count() == 0) {
-					if(nearAttraction(visitedLocation, attraction)) {
-						user.addUserReward(new UserReward(visitedLocation, attraction, getRewardPoints(attraction, user)));
+			for(VisitedLocation visitedLocation : userLocationsCopy) {
+				for(Attraction attraction : attractionsCopy) {
+					if(user.getUserRewards().stream().filter(r -> r.attraction.attractionName
+							.equals(attraction.attractionName)).count() == 0) {
+						if(nearAttraction(visitedLocation, attraction)) {
+							user.addUserReward(new UserReward(visitedLocation, attraction, getRewardPoints(attraction, user)));
+						}
 					}
 				}
 			}
-		}
+		}, executorService);
 	}
-	
+
 	public boolean isWithinAttractionProximity(Attraction attraction, Location location) {
 		return getDistance(attraction, location) > attractionProximityRange ? false : true;
 	}
