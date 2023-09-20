@@ -71,7 +71,7 @@ class TestPerformance {
 				getTime()));
 	}
 
-	
+
 	@Test
 	void highVolumeGetRewards() {
 		GpsUtil gpsUtil = new GpsUtil();
