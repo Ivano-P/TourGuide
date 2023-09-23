@@ -25,9 +25,16 @@ jobs:
         distribution: 'adopt'
         cache: maven
 
-    # mvn -B package command will go through compile, test and build
+
+    - name: Compile
+      run: mvn -B compile --file TourGuide/pom.xml
+
+    - name: Test
+      run: mvn -B test --file TourGuide/pom.xml
+
+    # mvn -B package command will build artefact
     - name: Build artifacts with Maven
-      run: mvn -B package --file TourGuide/pom.xml
+      run: mvn -B package -DskipTests --file TourGuide/pom.xml
 
     #saves and uploads the JAR file created from each build
     - name: Upload JAR file
