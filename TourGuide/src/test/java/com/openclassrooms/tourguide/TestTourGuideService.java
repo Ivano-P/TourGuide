@@ -93,7 +93,7 @@ class TestTourGuideService {
 	}
 
 	@Test
-	void testGetNearByAttractions() {
+	void testGetNearByAttractions() throws ExecutionException, InterruptedException {
 		//Arrange
 		GpsUtil gpsUtil = new GpsUtil();
 		RewardsService rewardsService = new RewardsService(gpsUtil, new RewardCentral());
@@ -101,7 +101,7 @@ class TestTourGuideService {
 		TourGuideService tourGuideService = new TourGuideService(gpsUtil, rewardsService);
 
 		User user = new User(UUID.randomUUID(), "jon", "000", "jon@tourGuide.com");
-		VisitedLocation visitedLocation = gpsUtil.getUserLocation(user.getUserId());
+		VisitedLocation visitedLocation = tourGuideService.trackUserLocation(user).get();
 
 		SortedMap<Double, Attraction> attractionByDistance = tourGuideService
 				.getAttractionsDistanceFromLocation(visitedLocation);
