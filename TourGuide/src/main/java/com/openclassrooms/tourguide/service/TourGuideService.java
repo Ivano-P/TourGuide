@@ -127,16 +127,18 @@ public class TourGuideService {
 	 *
 	"	 * @author Ivano P
 	 */
-	public SortedMap<Double, Attraction> getAttractionsDistanceFromLocation(VisitedLocation visitedLocation) {
-		//map to hold distance from visitedLocation to attraction
-		TreeMap<Double, Attraction> attractionByDistance= new TreeMap<>();
+	public CompletableFuture<SortedMap<Double, Attraction>> getAttractionsDistanceFromLocationFuture(VisitedLocation visitedLocation){
+		return CompletableFuture.supplyAsync(() -> {
+			//map to hold distance from visitedLocation to attraction
+			TreeMap<Double, Attraction> attractionByDistance= new TreeMap<>();
 
-		//Loop through list of attractions and map them with distances from visited location
-		for(Attraction attraction : gpsUtil.getAttractions()){
-			attractionByDistance.put(rewardsService.getDistance(visitedLocation.location, attraction), attraction);
-		}
+			//Loop through list of attractions and map them with distances from visited location
+			for(Attraction attraction : gpsUtil.getAttractions()){
+				attractionByDistance.put(rewardsService.getDistance(visitedLocation.location, attraction), attraction);
+			}
+			return attractionByDistance;
 
-		return attractionByDistance;
+		}, executorService);
 	}
 
 	/**
@@ -151,30 +153,34 @@ public class TourGuideService {
 	 *
 	 * @author Ivano P
 	 */
-	public List<NearbyAttractionDTO> getNearByAttractions(SortedMap<Double, Attraction> attractionAndDistance, User user,
-														  VisitedLocation visitedLocation){
-		List<NearbyAttractionDTO> fiveClosestAttractions = new ArrayList<>();
+	public CompletableFuture<List<NearbyAttractionDTO>> getNearByAttractionsFuture(SortedMap<Double, Attraction> attractionAndDistance, User user,
+																			VisitedLocation visitedLocation){
+		return CompletableFuture.supplyAsync(() -> {
+			List<NearbyAttractionDTO> fiveClosestAttractions = new ArrayList<>();
 
-		int counter = 0;
-		for (var entry : attractionAndDistance.entrySet()) {
-			// Stop after collecting data for the closest five attractions
-			if (counter >= 5) {
-				break;
+			int counter = 0;
+			for (var entry : attractionAndDistance.entrySet()) {
+				// Stop after collecting data for the closest five attractions
+				if (counter >= 5) {
+					break;
+				}
+				Attraction attraction = entry.getValue();
+				Double distanceFromVisitedLocation = entry.getKey();
+				int rewardPoints = rewardsService.getRewardPoints(attraction, user);
+				String attractionLatLong = "Attraction's latitude: " + String.valueOf(attraction.latitude) + ", longitude: " +
+						String.valueOf(attraction.longitude);
+				String userLatLong = "User's latitude: " + String.valueOf(visitedLocation.location.latitude) +
+						", longitude: " + String.valueOf(visitedLocation.location.longitude);
+
+				fiveClosestAttractions.add(new NearbyAttractionDTO(attraction.attractionName, attractionLatLong,
+						userLatLong, distanceFromVisitedLocation, rewardPoints));
+				counter ++;
 			}
-			Attraction attraction = entry.getValue();
-			Double distanceFromVisitedLocation = entry.getKey();
-			int rewardPoints = rewardsService.getRewardPoints(attraction, user);
-			String attractionLatLong = "Attraction's latitude: " + String.valueOf(attraction.latitude) + ", longitude: " +
-					String.valueOf(attraction.longitude);
-			String userLatLong = "User's latitude: " + String.valueOf(visitedLocation.location.latitude) +
-					", longitude: " + String.valueOf(visitedLocation.location.longitude);
+			return fiveClosestAttractions;
 
-			fiveClosestAttractions.add(new NearbyAttractionDTO(attraction.attractionName, attractionLatLong,
-					userLatLong, distanceFromVisitedLocation, rewardPoints));
-			counter ++;
-		}
-		return fiveClosestAttractions;
+		}, executorService);
 	}
+
 
 	private void addShutDownHook() {
 		Runtime.getRuntime().addShutdownHook(new Thread() {

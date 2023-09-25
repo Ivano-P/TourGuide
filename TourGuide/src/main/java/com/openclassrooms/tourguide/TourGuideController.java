@@ -45,13 +45,16 @@ public class TourGuideController {
      * @author Ivano P
      */
     @RequestMapping("/getNearbyAttractions") 
-    public List<NearbyAttractionDTO> getNearbyAttractions(@RequestParam String userName) throws ExecutionException, InterruptedException {
-        //get user location to search for 5 closest tourist attractions
+    public List<NearbyAttractionDTO> getNearbyAttractions(@RequestParam String userName) throws ExecutionException,
+            InterruptedException {
+        //get user location
     	VisitedLocation visitedLocation = tourGuideService.getUserLocation(getUser(userName)).get();
 
-        return tourGuideService.getNearByAttractions(
+        //return the closest attractions to visited location
+        return tourGuideService.getNearByAttractionsFuture(
                 tourGuideService
-                        .getAttractionsDistanceFromLocation(visitedLocation), getUser(userName), visitedLocation);
+                        .getAttractionsDistanceFromLocationFuture(visitedLocation)
+                        .get(), getUser(userName), visitedLocation).get();
     }
 
     @RequestMapping("/getRewards") 

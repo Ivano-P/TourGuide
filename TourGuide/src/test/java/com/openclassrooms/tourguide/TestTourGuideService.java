@@ -104,11 +104,11 @@ class TestTourGuideService {
 		VisitedLocation visitedLocation = tourGuideService.trackUserLocation(user).get();
 
 		SortedMap<Double, Attraction> attractionByDistance = tourGuideService
-				.getAttractionsDistanceFromLocation(visitedLocation);
+				.getAttractionsDistanceFromLocationFuture(visitedLocation).get();
 
 		//Act
 		List<NearbyAttractionDTO> results = tourGuideService
-				.getNearByAttractions(attractionByDistance ,user, visitedLocation);
+				.getNearByAttractionsFuture(attractionByDistance ,user, visitedLocation).get();
 		tourGuideService.tracker.stopTracking();
 
 		//Assert
