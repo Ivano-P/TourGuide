@@ -4,12 +4,10 @@
 name: Java CI with Maven
 
 on:
-  #for triggering actions manually
-  workflow_dispatch:
-
   #for triggering when push on master branch
   push:
     branches: [ "master" ]
+
 
 jobs:
   build:

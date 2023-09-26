@@ -46,7 +46,7 @@ public class TourGuideController {
      *
      * @author Ivano P
      */
-    @RequestMapping("/getNearbyAttractions") 
+        @RequestMapping("/getNearbyAttractions")
     public List<NearbyAttractionDTO> getNearbyAttractions(@RequestParam String userName) throws ExecutionException,
             InterruptedException {
         //get user location
