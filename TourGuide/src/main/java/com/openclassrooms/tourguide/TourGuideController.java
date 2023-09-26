@@ -1,9 +1,11 @@
 package com.openclassrooms.tourguide;
 
 import java.util.List;
+import java.util.SortedMap;
 import java.util.concurrent.ExecutionException;
 
 import com.openclassrooms.tourguide.dto.NearbyAttractionDTO;
+import gpsUtil.location.Attraction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -48,13 +50,13 @@ public class TourGuideController {
     public List<NearbyAttractionDTO> getNearbyAttractions(@RequestParam String userName) throws ExecutionException,
             InterruptedException {
         //get user location
-    	VisitedLocation visitedLocation = tourGuideService.getUserLocation(getUser(userName)).get();
+    	VisitedLocation userLocation = tourGuideService.getUserLocation(getUser(userName)).get();
+
+        //TreeMap of attractions with their distance from user, distance is the key and attractions are value.
+        SortedMap<Double, Attraction> distanceFromUserAndAttraction = tourGuideService.getAttractionsDistanceFromLocationFuture(userLocation).get();
 
         //return the closest attractions to visited location
-        return tourGuideService.getNearByAttractionsFuture(
-                tourGuideService
-                        .getAttractionsDistanceFromLocationFuture(visitedLocation)
-                        .get(), getUser(userName), visitedLocation).get();
+        return tourGuideService.getNearByAttractionsFuture(distanceFromUserAndAttraction, getUser(userName), userLocation).get();
     }
 
     @RequestMapping("/getRewards") 

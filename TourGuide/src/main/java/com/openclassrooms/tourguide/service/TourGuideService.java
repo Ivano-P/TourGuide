@@ -146,20 +146,21 @@ public class TourGuideService {
 	 * It then finds the five closest attractions to the visited location and returns them as a list
 	 * of NearbyAttractionDTO objects.
 	 *
-	 * @param attractionAndDistance A sorted map where the keys are distances to attractions and the values are the attractions themselves.
+	 * @param distanceFromUserAndAttraction A sorted map where the keys are distances to attractions and the values are the attractions themselves.
 	 * @param user The User object for whom we are finding the nearby attractions.
 	 * @param visitedLocation The VisitedLocation object representing the user's current location.
 	 * @return A list of the five closest attractions to the user's location, represented as NearbyAttractionDTO objects.
 	 *
 	 * @author Ivano P
 	 */
-	public CompletableFuture<List<NearbyAttractionDTO>> getNearByAttractionsFuture(SortedMap<Double, Attraction> attractionAndDistance, User user,
-																			VisitedLocation visitedLocation){
+	public CompletableFuture<List<NearbyAttractionDTO>> getNearByAttractionsFuture(SortedMap<Double, Attraction> distanceFromUserAndAttraction,
+																				   User user,
+																					VisitedLocation visitedLocation){
 		return CompletableFuture.supplyAsync(() -> {
 			List<NearbyAttractionDTO> fiveClosestAttractions = new ArrayList<>();
 
 			int counter = 0;
-			for (var entry : attractionAndDistance.entrySet()) {
+			for (var entry : distanceFromUserAndAttraction.entrySet()) {
 				// Stop after collecting data for the closest five attractions
 				if (counter >= 5) {
 					break;
