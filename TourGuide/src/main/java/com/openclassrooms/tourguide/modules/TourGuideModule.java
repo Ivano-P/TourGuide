@@ -1,4 +1,4 @@
-package com.openclassrooms.tourguide;
+package com.openclassrooms.tourguide.modules;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
