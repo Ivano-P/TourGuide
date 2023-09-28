@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UserPreferences.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">tourguide</a> &gt; <a href="index.source.html" class="el_package">com.openclassrooms.tourguide.user</a> &gt; <span class="el_source">UserPreferences.java</span></div><h1>UserPreferences.java</h1><pre class="source lang-java linenums">package com.openclassrooms.tourguide.user;
+
+public class UserPreferences {
+	
+<span class="fc" id="L5">	private int attractionProximity = Integer.MAX_VALUE;</span>
+<span class="fc" id="L6">	private int tripDuration = 1;</span>
+<span class="fc" id="L7">	private int ticketQuantity = 1;</span>
+<span class="fc" id="L8">	private int numberOfAdults = 1;</span>
+<span class="fc" id="L9">	private int numberOfChildren = 0;</span>
+	
+<span class="fc" id="L11">	public UserPreferences() {</span>
+<span class="fc" id="L12">	}</span>
+	
+	public void setAttractionProximity(int attractionProximity) {
+<span class="nc" id="L15">		this.attractionProximity = attractionProximity;</span>
+<span class="nc" id="L16">	}</span>
+	
+	public int getAttractionProximity() {
+<span class="nc" id="L19">		return attractionProximity;</span>
+	}
+	
+	public int getTripDuration() {
+<span class="nc" id="L23">		return tripDuration;</span>
+	}
+
+	public void setTripDuration(int tripDuration) {
+<span class="nc" id="L27">		this.tripDuration = tripDuration;</span>
+<span class="nc" id="L28">	}</span>
+
+	public int getTicketQuantity() {
+<span class="nc" id="L31">		return ticketQuantity;</span>
+	}
+
+	public void setTicketQuantity(int ticketQuantity) {
+<span class="nc" id="L35">		this.ticketQuantity = ticketQuantity;</span>
+<span class="nc" id="L36">	}</span>
+	
+	public int getNumberOfAdults() {
+<span class="nc" id="L39">		return numberOfAdults;</span>
+	}
+
+	public void setNumberOfAdults(int numberOfAdults) {
+<span class="nc" id="L43">		this.numberOfAdults = numberOfAdults;</span>
+<span class="nc" id="L44">	}</span>
+
+	public int getNumberOfChildren() {
+<span class="nc" id="L47">		return numberOfChildren;</span>
+	}
+
+	public void setNumberOfChildren(int numberOfChildren) {
+<span class="nc" id="L51">		this.numberOfChildren = numberOfChildren;</span>
+<span class="nc" id="L52">	}</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>
