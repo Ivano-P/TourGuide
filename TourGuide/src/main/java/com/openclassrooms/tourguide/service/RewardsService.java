@@ -1,21 +1,19 @@
 package com.openclassrooms.tourguide.service;
 
-import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.stream.Collectors;
-
-import lombok.extern.log4j.Log4j2;
-import org.springframework.stereotype.Service;
-
+import com.openclassrooms.tourguide.user.User;
+import com.openclassrooms.tourguide.user.UserReward;
 import gpsUtil.GpsUtil;
 import gpsUtil.location.Attraction;
 import gpsUtil.location.Location;
 import gpsUtil.location.VisitedLocation;
+import org.springframework.stereotype.Service;
 import rewardCentral.RewardCentral;
-import com.openclassrooms.tourguide.user.User;
-import com.openclassrooms.tourguide.user.UserReward;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @Service
 public class RewardsService {
@@ -49,7 +47,7 @@ public class RewardsService {
 	public void calculateRewardsForAllUsers(List<User> users){
 		//user stream() to process user
 		List<CompletableFuture<Void>> futures = users.stream().map((u) -> calculateRewardsFuture(u))
-				.collect(Collectors.toList());
+				.toList();
 
 		//wait for all CompletableFutures to complete
 		CompletableFuture<Void> allOf = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
