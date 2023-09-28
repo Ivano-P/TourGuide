@@ -111,7 +111,8 @@ public class TourGuideService {
 			try {
 				rewardsService.calculateRewardsFuture(user).get();
 
-			} catch (InterruptedException e) {//warp check exception into uncheck exception to manage in
+				//warp check exception into uncheck exception
+			} catch (InterruptedException e) {
 				throw new InterruptedRewardCalculationException("Error calculating rewards for user", e);
 			} catch (ExecutionException e) {
 				throw new InterruptedRewardCalculationException("Error calculating rewards for user", e);
