@@ -1,6 +1,7 @@
 package com.openclassrooms.tourguide.service;
 
 import com.openclassrooms.tourguide.dto.NearbyAttractionDTO;
+import com.openclassrooms.tourguide.exceptions.InterruptedRewardCalculationException;
 import com.openclassrooms.tourguide.helper.InternalTestHelper;
 import com.openclassrooms.tourguide.tracker.Tracker;
 import com.openclassrooms.tourguide.user.User;
@@ -108,11 +109,12 @@ public class TourGuideService {
 			VisitedLocation visitedLocation = gpsUtil.getUserLocation(user.getUserId());
 			user.addToVisitedLocations(visitedLocation);
 			try {
-				rewardsService.calculateRewardsFuture(user).get(); //then
-			} catch (InterruptedException e) {
-				throw new RuntimeException(e);
+				rewardsService.calculateRewardsFuture(user).get();
+
+			} catch (InterruptedException e) {//warp check exception into uncheck exception to manage in
+				throw new InterruptedRewardCalculationException("Error calculating rewards for user", e);
 			} catch (ExecutionException e) {
-				throw new RuntimeException(e);
+				throw new InterruptedRewardCalculationException("Error calculating rewards for user", e);
 			}
 			return visitedLocation;
 		},executorService);
